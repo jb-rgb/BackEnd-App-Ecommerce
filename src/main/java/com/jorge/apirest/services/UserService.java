@@ -1,6 +1,8 @@
 package com.jorge.apirest.services;
 
+import com.jorge.apirest.dto.role.RoleDTO;
 import com.jorge.apirest.dto.user.CreateUserRequest;
+import com.jorge.apirest.dto.user.CreateUserResponse;
 import com.jorge.apirest.models.Role;
 import com.jorge.apirest.models.User;
 import com.jorge.apirest.models.UserHasRoles;
@@ -11,6 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -24,10 +28,11 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
 
     @Transactional
-    public User create(CreateUserRequest request) {
+    public CreateUserResponse create(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.email)) {
             throw new RuntimeException("Email already exists");
         }
+
         User user = new User();
         user.setName(request.name);
         user.setLastName(request.lastName);
@@ -41,6 +46,21 @@ public class UserService {
         );
         UserHasRoles userHasRoles = new UserHasRoles(savedUser, clientRole);
         userHasRolesRepository.save(userHasRoles);
-        return savedUser;
+
+        CreateUserResponse response = new CreateUserResponse();
+        response.setId(savedUser.getId());
+        response.setName(savedUser.getName());
+        response.setLastName(savedUser.getLastName());
+        response.setPhone(savedUser.getPhone());
+        response.setEmail(savedUser.getEmail());
+        response.setImage(savedUser.getImage());
+        List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(savedUser.getId());
+        List<RoleDTO> roleDTOS = roles
+                .stream()
+                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
+                .toList();
+        response.setRoles(roleDTOS);
+
+        return response;
     }
 }
