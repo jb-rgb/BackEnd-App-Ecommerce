@@ -27,4 +27,11 @@ public class UserRoleId implements Serializable {
     public int hashCode() {
         return Objects.hash(userId, roleId);
     }
+
+    public UserRoleId() {}
+
+    public UserRoleId(Long userId, String roleId) {
+        this.userId = userId;
+        this.roleId = roleId;
+    }
 }

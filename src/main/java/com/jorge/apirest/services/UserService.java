@@ -1,7 +1,11 @@
 package com.jorge.apirest.services;
 
 import com.jorge.apirest.dto.user.CreateUserRequest;
+import com.jorge.apirest.models.Role;
 import com.jorge.apirest.models.User;
+import com.jorge.apirest.models.UserHasRoles;
+import com.jorge.apirest.repositories.RoleRepository;
+import com.jorge.apirest.repositories.UserHasRolesRepository;
 import com.jorge.apirest.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,6 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private RoleRepository roleRepository;
+    @Autowired
+    private UserHasRolesRepository userHasRolesRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -27,6 +35,12 @@ public class UserService {
         user.setEmail(request.email);
         String encryptedPassword = passwordEncoder.encode(request.password);
         user.setPassword(encryptedPassword);
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        Role clientRole = roleRepository.findById("CLIENT").orElseThrow(
+                () -> new RuntimeException("Role not found")
+        );
+        UserHasRoles userHasRoles = new UserHasRoles(savedUser, clientRole);
+        userHasRolesRepository.save(userHasRoles);
+        return savedUser;
     }
 }

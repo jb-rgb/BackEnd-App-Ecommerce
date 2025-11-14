@@ -4,11 +4,14 @@ import com.jorge.apirest.dto.user.CreateUserRequest;
 import com.jorge.apirest.models.User;
 import com.jorge.apirest.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
@@ -16,9 +19,16 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
-    @PostMapping
-    public ResponseEntity<User> create(@RequestBody CreateUserRequest request) {
-        User user = userService.create(request);
-        return ResponseEntity.ok(user);
+    @PostMapping(value = "/register")
+    public ResponseEntity<?> create(@RequestBody CreateUserRequest request) {
+        try {
+            User user = userService.create(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(user);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "message", e.getMessage(),
+                    "statusCode", HttpStatus.BAD_REQUEST.value()
+            ));
+        }
     }
 }
