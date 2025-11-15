@@ -2,6 +2,8 @@ package com.jorge.apirest.controllers;
 
 import com.jorge.apirest.dto.user.CreateUserRequest;
 import com.jorge.apirest.dto.user.CreateUserResponse;
+import com.jorge.apirest.dto.user.LoginRequest;
+import com.jorge.apirest.dto.user.LoginResponse;
 import com.jorge.apirest.models.User;
 import com.jorge.apirest.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +31,19 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
                     "message", e.getMessage(),
                     "statusCode", HttpStatus.BAD_REQUEST.value()
+            ));
+        }
+    }
+
+    @PostMapping(value = "/login")
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
+        try {
+            LoginResponse response = userService.login(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of(
+                    "message", e.getMessage(),
+                    "statusCode", HttpStatus.UNAUTHORIZED.value()
             ));
         }
     }
