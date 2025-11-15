@@ -96,4 +96,25 @@ public class UserService {
         response.setUser(createUserResponse);
         return response;
     }
+
+    @Transactional
+    public CreateUserResponse findById(Long id) {
+        User user = userRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("The user with id " + id + " does not exist.")
+        );
+        List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(user.getId());
+        List<RoleDTO> roleDTOS = roles
+                .stream()
+                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
+                .toList();
+        CreateUserResponse createUserResponse = new CreateUserResponse();
+        createUserResponse.setId(user.getId());
+        createUserResponse.setName(user.getName());
+        createUserResponse.setLastName(user.getLastName());
+        createUserResponse.setPhone(user.getPhone());
+        createUserResponse.setEmail(user.getEmail());
+        createUserResponse.setImage(user.getImage());
+        createUserResponse.setRoles(roleDTOS);
+        return createUserResponse;
+    }
 }
