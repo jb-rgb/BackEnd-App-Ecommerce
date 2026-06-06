@@ -1,10 +1,7 @@
 package com.jorge.apirest.services;
 
 import com.jorge.apirest.dto.role.RoleDTO;
-import com.jorge.apirest.dto.user.CreateUserRequest;
-import com.jorge.apirest.dto.user.CreateUserResponse;
-import com.jorge.apirest.dto.user.LoginRequest;
-import com.jorge.apirest.dto.user.LoginResponse;
+import com.jorge.apirest.dto.user.*;
 import com.jorge.apirest.models.Role;
 import com.jorge.apirest.models.User;
 import com.jorge.apirest.models.UserHasRoles;
@@ -17,6 +14,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 
 @Service
@@ -102,6 +103,52 @@ public class UserService {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("The user with id " + id + " does not exist.")
         );
+        List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(user.getId());
+        List<RoleDTO> roleDTOS = roles
+                .stream()
+                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
+                .toList();
+        CreateUserResponse createUserResponse = new CreateUserResponse();
+        createUserResponse.setId(user.getId());
+        createUserResponse.setName(user.getName());
+        createUserResponse.setLastName(user.getLastName());
+        createUserResponse.setPhone(user.getPhone());
+        createUserResponse.setEmail(user.getEmail());
+        createUserResponse.setImage(user.getImage());
+        createUserResponse.setRoles(roleDTOS);
+        return createUserResponse;
+    }
+
+    @Transactional
+    public CreateUserResponse updateUserWithImage(Long id, UpdateUserRequest request) throws IOException {
+        User user = userRepository.findById(id).orElseThrow(
+                () -> new RuntimeException("The user with id " + id + " does not exist.")
+        );
+
+        if (request.getName() != null) {
+            user.setName(request.getName());
+        }
+
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+
+        if (request.getFile() != null && !request.getFile().isEmpty()) {
+            String uploadDir = "uploads/users/" + user.getId();
+            String filename = request.getFile().getOriginalFilename();
+            String filePath = Paths.get(uploadDir, filename).toString();
+
+            Files.createDirectories(Paths.get(uploadDir));
+            Files.copy(request.getFile().getInputStream(), Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+            user.setImage("/" + filePath.replace("\\", "/"));
+        }
+
+        userRepository.save(user);
+
         List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(user.getId());
         List<RoleDTO> roleDTOS = roles
                 .stream()
