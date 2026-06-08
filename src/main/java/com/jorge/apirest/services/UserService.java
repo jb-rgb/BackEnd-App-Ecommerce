@@ -2,6 +2,7 @@ package com.jorge.apirest.services;
 
 import com.jorge.apirest.dto.role.RoleDTO;
 import com.jorge.apirest.dto.user.*;
+import com.jorge.apirest.dto.user.mapper.UserMapper;
 import com.jorge.apirest.models.Role;
 import com.jorge.apirest.models.User;
 import com.jorge.apirest.models.UserHasRoles;
@@ -32,9 +33,11 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private JwtUtil jwtUtil;
+    @Autowired
+    private UserMapper userMapper;
 
     @Transactional
-    public CreateUserResponse create(CreateUserRequest request) {
+    public UserResponse create(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.email)) {
             throw new RuntimeException("Email already exists");
         }
@@ -52,22 +55,9 @@ public class UserService {
         );
         UserHasRoles userHasRoles = new UserHasRoles(savedUser, clientRole);
         userHasRolesRepository.save(userHasRoles);
-
-        CreateUserResponse response = new CreateUserResponse();
-        response.setId(savedUser.getId());
-        response.setName(savedUser.getName());
-        response.setLastName(savedUser.getLastName());
-        response.setPhone(savedUser.getPhone());
-        response.setEmail(savedUser.getEmail());
-        response.setImage(savedUser.getImage());
         List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(savedUser.getId());
-        List<RoleDTO> roleDTOS = roles
-                .stream()
-                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
-                .toList();
-        response.setRoles(roleDTOS);
 
-        return response;
+        return userMapper.toUserResponse(user, roles);
     }
 
     @Transactional
@@ -80,47 +70,24 @@ public class UserService {
         }
         String token =jwtUtil.generateToken(user);
         List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(user.getId());
-        List<RoleDTO> roleDTOS = roles
-                .stream()
-                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
-                .toList();
-        CreateUserResponse createUserResponse = new CreateUserResponse();
-        createUserResponse.setId(user.getId());
-        createUserResponse.setName(user.getName());
-        createUserResponse.setLastName(user.getLastName());
-        createUserResponse.setPhone(user.getPhone());
-        createUserResponse.setEmail(user.getEmail());
-        createUserResponse.setImage(user.getImage());
-        createUserResponse.setRoles(roleDTOS);
         LoginResponse response = new LoginResponse();
         response.setToken("Bearer " + token);
-        response.setUser(createUserResponse);
+        response.setUser(userMapper.toUserResponse(user, roles));
         return response;
     }
 
     @Transactional
-    public CreateUserResponse findById(Long id) {
+    public UserResponse findById(Long id) {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("The user with id " + id + " does not exist.")
         );
         List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(user.getId());
-        List<RoleDTO> roleDTOS = roles
-                .stream()
-                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
-                .toList();
-        CreateUserResponse createUserResponse = new CreateUserResponse();
-        createUserResponse.setId(user.getId());
-        createUserResponse.setName(user.getName());
-        createUserResponse.setLastName(user.getLastName());
-        createUserResponse.setPhone(user.getPhone());
-        createUserResponse.setEmail(user.getEmail());
-        createUserResponse.setImage(user.getImage());
-        createUserResponse.setRoles(roleDTOS);
-        return createUserResponse;
+
+        return userMapper.toUserResponse(user, roles);
     }
 
     @Transactional
-    public CreateUserResponse updateUserWithImage(Long id, UpdateUserRequest request) throws IOException {
+    public UserResponse updateUserWithImage(Long id, UpdateUserRequest request) throws IOException {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new RuntimeException("The user with id " + id + " does not exist.")
         );
@@ -150,18 +117,7 @@ public class UserService {
         userRepository.save(user);
 
         List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(user.getId());
-        List<RoleDTO> roleDTOS = roles
-                .stream()
-                .map(role -> new RoleDTO(role.getId(), role.getName(), role.getImage(), role.getRoute()))
-                .toList();
-        CreateUserResponse createUserResponse = new CreateUserResponse();
-        createUserResponse.setId(user.getId());
-        createUserResponse.setName(user.getName());
-        createUserResponse.setLastName(user.getLastName());
-        createUserResponse.setPhone(user.getPhone());
-        createUserResponse.setEmail(user.getEmail());
-        createUserResponse.setImage(user.getImage());
-        createUserResponse.setRoles(roleDTOS);
-        return createUserResponse;
+
+        return userMapper.toUserResponse(user, roles);
     }
 }
