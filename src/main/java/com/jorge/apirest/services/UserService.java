@@ -37,7 +37,7 @@ public class UserService {
     private UserMapper userMapper;
 
     @Transactional
-    public UserResponse create(CreateUserRequest request) {
+    public LoginResponse create(CreateUserRequest request) {
         if (userRepository.existsByEmail(request.email)) {
             throw new RuntimeException("Email already exists");
         }
@@ -53,11 +53,18 @@ public class UserService {
         Role clientRole = roleRepository.findById("CLIENT").orElseThrow(
                 () -> new RuntimeException("Role not found")
         );
+
         UserHasRoles userHasRoles = new UserHasRoles(savedUser, clientRole);
         userHasRolesRepository.save(userHasRoles);
+
+        String token =jwtUtil.generateToken(user);
         List<Role> roles = roleRepository.findAllByUserHasRoles_User_Id(savedUser.getId());
 
-        return userMapper.toUserResponse(user, roles);
+        LoginResponse response = new LoginResponse();
+        response.setToken("Bearer " + token);
+        response.setUser(userMapper.toUserResponse(user, roles));
+
+        return response;
     }
 
     @Transactional
